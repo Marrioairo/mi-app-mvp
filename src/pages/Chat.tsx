@@ -99,10 +99,13 @@ const Chat: React.FC = () => {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to get AI response");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || `Server error ${response.status}`);
+      }
 
       const data = await response.json();
-      const aiContent = data.choices[0].message.content;
+      const aiContent = data.choices?.[0]?.message?.content || data.content || JSON.stringify(data);
 
       await addDoc(collection(db, "chats"), {
         userId: user.uid,
@@ -111,8 +114,16 @@ const Chat: React.FC = () => {
         mode,
         timestamp: Timestamp.now(),
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
+      // Show the error visibly inside the chat instead of silently failing
+      await addDoc(collection(db, "chats"), {
+        userId: user.uid,
+        role: "assistant",
+        content: `⚠️ **Error de conexión con la IA:** ${error.message}\n\nPor favor verifica que la variable \`DEEPSEEK_API_KEY\` en Vercel tenga una clave válida (no \`sk_xxx\`). Ve a [platform.deepseek.com](https://platform.deepseek.com) para obtener tu clave real.`,
+        mode,
+        timestamp: Timestamp.now(),
+      });
     } finally {
       setIsStreaming(false);
       setStreamingMessage("");
