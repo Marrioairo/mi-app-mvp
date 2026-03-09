@@ -130,6 +130,12 @@ const Scorekeeper: React.FC = () => {
                         <div key={p.id} className="flex items-center gap-2 py-1.5"><span className="w-6 h-6 rounded bg-neutral-100 flex items-center justify-center text-xs font-bold text-neutral-600">{p.number}</span><span className="text-sm font-medium">{p.name}</span><span className="text-[10px] text-neutral-400 ml-auto">{p.position}</span></div>
                     ))}
                 </div>
+                <div>
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Bench (7)</span>
+                    {awayPlayers.filter(p => !p.isStarter).map(p => (
+                        <div key={p.id} className="flex items-center gap-2 py-1.5"><span className="w-6 h-6 rounded bg-neutral-100 flex items-center justify-center text-xs font-bold text-neutral-500">{p.number}</span><span className="text-sm text-neutral-500">{p.name}</span></div>
+                    ))}
+                </div>
             </div>
         </div>
       </aside>
