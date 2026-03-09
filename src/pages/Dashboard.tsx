@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { motion } from "motion/react";
-import { LayoutDashboard, MessageSquare, CreditCard, Settings, TrendingUp, Clock, Zap, Globe, Users, Plus, Star, UserMinus } from "lucide-react";
+import { LayoutDashboard, MessageSquare, CreditCard, Settings, TrendingUp, Clock, Zap, Globe, Users, Plus, Star, UserMinus, Pencil, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getPriceUSD } from "../lib/pricing";
 import { Player } from "../lib/types";
@@ -16,7 +16,9 @@ const Dashboard: React.FC = () => {
   const [regionPrice, setRegionPrice] = useState(15);
   const [players, setPlayers] = useState<Player[]>([]);
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [newPlayer, setNewPlayer] = useState({ name: "", number: "", position: "G" });
+  const [editForm, setEditForm] = useState({ name: "", number: "", position: "G" });
 
   useEffect(() => {
     if (!user) return;
@@ -88,6 +90,23 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleUpdatePlayer = async () => {
+    if (!editingPlayer || !editForm.name || !editForm.number) return;
+
+    try {
+      const { doc, updateDoc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "players", editingPlayer.id), {
+        name: editForm.name,
+        number: editForm.number,
+        position: editForm.position
+      });
+      setPlayers(players.map(p => p.id === editingPlayer.id ? { ...p, ...editForm } : p));
+      setEditingPlayer(null);
+    } catch (err) {
+      console.error("Update error:", err);
+    }
+  };
+
   const togglePlayerStatus = async (player: Player) => {
     const startersCount = players.filter(p => p.isStarter).length;
     const activeCount = players.filter(p => p.isActive).length;
@@ -120,6 +139,7 @@ const Dashboard: React.FC = () => {
   };
 
   const deletePlayer = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this player?")) return;
     try {
       const { doc, deleteDoc } = await import("firebase/firestore");
       await deleteDoc(doc(db, "players", id));
@@ -223,6 +243,9 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <button onClick={() => { setEditingPlayer(p); setEditForm({ name: p.name, number: p.number, position: p.position }); }} title="Edit Player" className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100">
+                      <Pencil className="h-3 w-3" />
+                    </button>
                     <button onClick={() => togglePlayerStatus(p)} title="Change Role" className={`p-1.5 rounded-lg ${p.isStarter ? 'bg-orange-500 text-white' : p.isActive ? 'bg-blue-500 text-white' : 'bg-neutral-200 text-neutral-500'}`}>
                       <Star className="h-3 w-3" />
                     </button>
@@ -283,6 +306,36 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Edit Player Modal */}
+      {editingPlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black">Edit Player</h3>
+              <button onClick={() => setEditingPlayer(null)} className="p-2 hover:bg-neutral-100 rounded-full"><X className="h-5 w-5"/></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-neutral-400 uppercase">Name</label>
+                <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full mt-1 px-4 py-2 rounded-xl border border-neutral-200 focus:border-orange-500 transition-colors" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase">Number</label>
+                  <input type="text" value={editForm.number} onChange={e => setEditForm({...editForm, number: e.target.value})} className="w-full mt-1 px-4 py-2 rounded-xl border border-neutral-200 focus:border-orange-500 transition-colors" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase">Position</label>
+                  <select value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full mt-1 px-4 py-2 rounded-xl border border-neutral-200 focus:border-orange-500 transition-colors bg-white">
+                    <option value="G">G</option><option value="F">F</option><option value="C">C</option>
+                  </select>
+                </div>
+              </div>
+              <button onClick={handleUpdatePlayer} className="w-full py-3 bg-neutral-900 text-white rounded-xl font-bold mt-4 hover:bg-neutral-800">Save Changes</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../lib/firebase";
-import { collection, addDoc, query, where, getDocs, Timestamp } from "firebase/firestore";
-import { Trophy, Plus, Settings } from "lucide-react";
-import { motion } from "motion/react";
+import { db, storage } from "../lib/firebase";
+import { collection, addDoc, query, where, getDocs, Timestamp, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Trophy, Plus, Settings, UserPlus, Camera, X, Check } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+
+interface Player { id: string; name: string; number: string; }
 
 interface TournamentData {
   id: string;
   name: string;
   format: "knockout" | "league";
   teams: string[];
+  enrolledPlayers?: { id: string; name: string; photoURL: string }[];
   status: "upcoming" | "ongoing" | "completed";
 }
 
@@ -19,6 +23,13 @@ const Tournament: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newFormat, setNewFormat] = useState<"knockout" | "league">("knockout");
+
+  // Enrollment State
+  const [enrollingTournament, setEnrollingTournament] = useState<TournamentData | null>(null);
+  const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
+  const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -31,7 +42,15 @@ const Tournament: React.FC = () => {
       });
       setTournaments(data);
     };
+
+    const fetchPlayers = async () => {
+      const q = query(collection(db, "players"), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      setAvailablePlayers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)));
+    };
+
     fetchTournaments();
+    fetchPlayers();
   }, [user]);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -43,6 +62,7 @@ const Tournament: React.FC = () => {
       name: newName,
       format: newFormat,
       teams: [],
+      enrolledPlayers: [],
       status: "upcoming",
       createdAt: Timestamp.now(),
     };
@@ -54,6 +74,52 @@ const Tournament: React.FC = () => {
       setNewName("");
     } catch (error) {
       console.error("Error creating tournament:", error);
+    }
+  };
+
+  const handleEnrollPlayer = async () => {
+    if (!selectedPlayerId || !enrollingTournament || !user) return;
+    
+    setIsUploading(true);
+    try {
+      let photoURL = "";
+      if (uploadFile) {
+        const fileRef = ref(storage, `tournaments/${enrollingTournament.id}/${selectedPlayerId}_${Date.now()}`);
+        await uploadBytes(fileRef, uploadFile);
+        photoURL = await getDownloadURL(fileRef);
+      }
+
+      const player = availablePlayers.find(p => p.id === selectedPlayerId);
+      if (!player) return;
+
+      const enrollmentData = {
+        id: player.id,
+        name: player.name,
+        photoURL,
+        enrolledAt: Timestamp.now()
+      };
+
+      const tournamentRef = doc(db, "tournaments", enrollingTournament.id);
+      await updateDoc(tournamentRef, {
+        enrolledPlayers: arrayUnion(enrollmentData)
+      });
+
+      // Update local state
+      setTournaments(tournaments.map(t => 
+        t.id === enrollingTournament.id 
+          ? { ...t, enrolledPlayers: [...(t.enrolledPlayers || []), enrollmentData] } 
+          : t
+      ));
+
+      setEnrollingTournament(null);
+      setSelectedPlayerId("");
+      setUploadFile(null);
+      alert("Player enrolled successfully! 🏀");
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      alert("Error enrolling player. Check console.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -150,8 +216,9 @@ const Tournament: React.FC = () => {
                 <p className="text-sm text-neutral-500">{tournament.teams.length} Teams Enrolled</p>
                 
                 <div className="mt-6 flex items-center gap-2">
-                  <button className="flex-1 rounded-xl bg-neutral-100 px-4 py-2 text-sm font-bold text-neutral-900 hover:bg-neutral-200 transition-colors">
-                    Manage
+                  <button onClick={() => setEnrollingTournament(tournament)} className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-orange-600 px-4 py-2 text-sm font-bold text-white hover:bg-orange-500 transition-all shadow-sm">
+                    <UserPlus className="h-4 w-4" />
+                    Enroll
                   </button>
                   <button className="flex items-center justify-center rounded-xl bg-neutral-100 p-2 text-neutral-600 hover:bg-neutral-200 transition-colors">
                     <Settings className="h-5 w-5" />
@@ -163,6 +230,85 @@ const Tournament: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Enrollment Modal */}
+      <AnimatePresence>
+        {enrollingTournament && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full max-w-lg bg-white rounded-[32px] p-8 shadow-2xl overflow-hidden relative">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-black text-neutral-900 leading-tight">Enroll Player</h3>
+                  <p className="text-sm text-neutral-500 font-medium">{enrollingTournament.name}</p>
+                </div>
+                <button onClick={() => setEnrollingTournament(null)} className="p-2 hover:bg-neutral-100 rounded-full transition-colors"><X className="h-5 w-5"/></button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Player Selection */}
+                <div>
+                  <label className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-2 block">Choose Athlete</label>
+                  <select value={selectedPlayerId} onChange={e => setSelectedPlayerId(e.target.value)} className="w-full rounded-2xl border-2 border-neutral-100 bg-neutral-50 px-4 py-3 outline-none focus:border-orange-500 focus:bg-white transition-all font-bold text-neutral-700">
+                    <option value="">Select from Roster...</option>
+                    {availablePlayers.map(p => (
+                      <option key={p.id} value={p.id}>{p.number} - {p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Photo Upload Area */}
+                <div>
+                  <label className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-2 block">Player Photo (Real Image)</label>
+                  <div className="relative group">
+                    <input type="file" accept="image/*" onChange={e => setUploadFile(e.target.files?.[0] || null)} className="hidden" id="photo-upload" />
+                    <label htmlFor="photo-upload" className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-neutral-200 rounded-2xl cursor-pointer hover:border-orange-500 hover:bg-orange-50/50 transition-all overflow-hidden bg-neutral-50">
+                      {uploadFile ? (
+                        <div className="flex flex-col items-center">
+                          <Check className="h-8 w-8 text-emerald-500 mb-2" />
+                          <span className="text-sm font-bold text-neutral-600">{uploadFile.name}</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <Camera className="h-8 w-8 text-neutral-400 mb-2 group-hover:text-orange-500 transition-colors" />
+                          <span className="text-sm font-bold text-neutral-500 group-hover:text-orange-500">Tap to Upload Photo</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                <button onClick={handleEnrollPlayer} disabled={!selectedPlayerId || isUploading} className={`w-full py-4 rounded-2xl text-white font-black text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${isUploading ? 'bg-neutral-300' : 'bg-neutral-900 hover:bg-black active:scale-[0.98]'}`}>
+                  {isUploading ? (
+                    <>
+                      <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>Register Player</>
+                  )}
+                </button>
+              </div>
+
+              {/* List of already enrolled players */}
+              {enrollingTournament.enrolledPlayers && enrollingTournament.enrolledPlayers.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-neutral-100">
+                  <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4">Enrolled Players ({enrollingTournament.enrolledPlayers.length})</h4>
+                  <div className="grid grid-cols-4 gap-3">
+                    {enrollingTournament.enrolledPlayers.map(p => (
+                      <div key={p.id} className="flex flex-col items-center gap-1">
+                        <div className="h-12 w-12 rounded-full bg-neutral-100 overflow-hidden border-2 border-white shadow-sm ring-1 ring-neutral-100">
+                          {p.photoURL ? <img src={p.photoURL} alt={p.name} className="h-full w-full object-cover" /> : <div className="h-full w-full bg-orange-100" />}
+                        </div>
+                        <span className="text-[10px] font-bold text-neutral-500 truncate w-full text-center">{p.name.split(' ')[0]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
