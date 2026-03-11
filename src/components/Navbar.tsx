@@ -8,9 +8,11 @@ const Navbar: React.FC = () => {
   const { user, loginWithGoogle, logout } = useAuth();
   const { t, i18n } = useTranslation();
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'en' ? 'es' : 'en';
-    i18n.changeLanguage(newLang);
+  const languages = ['en', 'es', 'zh', 'fr', 'pt'];
+  const nextLanguage = () => {
+    const currentIndex = languages.indexOf(i18n.language.split('-')[0]);
+    const nextIndex = (currentIndex + 1) % languages.length;
+    i18n.changeLanguage(languages[nextIndex]);
   };
 
   return (
@@ -27,11 +29,11 @@ const Navbar: React.FC = () => {
 
         <div className="flex items-center gap-4">
           <button
-            onClick={toggleLanguage}
-            className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors"
+            onClick={nextLanguage}
+            className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors uppercase"
           >
             <Globe className="h-4 w-4" />
-            {i18n.language?.toUpperCase() || 'EN'}
+            {i18n.language?.split('-')[0] || 'EN'}
           </button>
 
           {user ? (

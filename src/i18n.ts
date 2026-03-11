@@ -248,6 +248,75 @@ const resources = {
       "scouting": "Scouting",
       "teams": "Equipos"
     }
+  },
+  zh: {
+    translation: {
+      "hero_title": "利用 AI 智慧赢得比赛",
+      "hero_subtitle": "终极篮球记分员和战术分析平台。",
+      "start_free": "免费开始",
+      "upgrade_pro": "升级到专业版",
+      "scorekeeper": "记分员",
+      "stats": "数据统计",
+      "ai_analyst": "AI 分析师",
+      "login": "登录",
+      "logout": "登出",
+      "dashboard": "控制面板",
+      "finances": "财务",
+      "scouting": "球探系统",
+      "teams": "球队",
+      "tournaments": "锦标赛",
+      "starters": "首发",
+      "bench": "替补",
+      "action_1pt": "+1 罚球",
+      "action_2pt": "+2 投篮",
+      "action_3pt": "+3 三分"
+    }
+  },
+  fr: {
+    translation: {
+      "hero_title": "Gagnez le match avec l'intelligence IA",
+      "hero_subtitle": "La plateforme ultime de marqueur et d'analyse tactique de basket-ball.",
+      "start_free": "Commencer gratuitement",
+      "upgrade_pro": "Passer à Pro",
+      "scorekeeper": "Marqueur",
+      "stats": "Stats",
+      "ai_analyst": "Analyste IA",
+      "login": "Connexion",
+      "logout": "Déconnexion",
+      "dashboard": "Tableau de bord",
+      "finances": "Finances",
+      "scouting": "Scouting",
+      "teams": "Équipes",
+      "tournaments": "Tournois",
+      "starters": "Titulaires",
+      "bench": "Banc",
+      "action_1pt": "+1 LF",
+      "action_2pt": "+2 Panier",
+      "action_3pt": "+3 Points"
+    }
+  },
+  pt: {
+    translation: {
+      "hero_title": "Vença o jogo com inteligência IA",
+      "hero_subtitle": "A plataforma definitiva de marcador e análise tática de basquete.",
+      "start_free": "Começar Grátis",
+      "upgrade_pro": "Atualizar para Pro",
+      "scorekeeper": "Marcador",
+      "stats": "Estatísticas",
+      "ai_analyst": "Analista IA",
+      "login": "Entrar",
+      "logout": "Sair",
+      "dashboard": "Painel",
+      "finances": "Finanças",
+      "scouting": "Scouting",
+      "teams": "Equipes",
+      "tournaments": "Torneios",
+      "starters": "Titulares",
+      "bench": "Reserva",
+      "action_1pt": "+1 LL",
+      "action_2pt": "+2 Pontos",
+      "action_3pt": "+3 Pontos"
+    }
   }
 };
 
@@ -257,6 +326,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
+    supportedLngs: ['en', 'es', 'zh', 'fr', 'pt'],
     interpolation: {
       escapeValue: false
     }
