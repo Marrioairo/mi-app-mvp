@@ -68,6 +68,19 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
+// ─── Subscriptions (Stripe Checkout Placeholder) ─────────────────────────────
+app.post("/api/create-checkout-session", async (req, res) => {
+  try {
+    const { countryCode } = req.body;
+    console.log(`Checkout requested for region: ${countryCode}`);
+    res.json({
+      url: "https://billing.stripe.com/p/login/test_dummy"
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── SSE Endpoint ─────────────────────────────────────────────────────────────
 app.get("/api/events/sse", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
@@ -110,30 +123,49 @@ app.post("/api/events", async (req, res) => {
   if (["TOV", "PF", "OREB", "AST"].includes(event.type) && event.matchId) {
     (async () => {
       try {
-        let count = 1;
+        let matchEvents: any[] = [event];
         try {
           const result = await dbQuery(
-            "SELECT data FROM events WHERE data::text LIKE $1",
+            "SELECT data FROM events WHERE data::text LIKE $1 ORDER BY created_at DESC LIMIT 50",
             [`%"matchId":"${event.matchId}"%`]
           );
-          count = result.rows.filter((row: any) => {
-            const d = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-            return d.type === event.type && d.team === event.team;
-          }).length;
-        } catch (_) { /* DB unavailable, skip count */ }
+          if (result.rows.length > 0) {
+            matchEvents = result.rows.map((row: any) => typeof row.data === 'string' ? JSON.parse(row.data) : row.data);
+          }
+        } catch (_) { /* DB unavailable */ }
 
         const deepSeek = getDeepSeek();
-        const aiSystem = "You are an expert basketball coach AI. Respond in 1 brief sentence.";
+        const aiSystem = "You are an expert professional basketball coach assistant. Respond in 1 brief, highly actionable sentence in the same language as the user.";
         let aiPrompt: string | null = null;
 
-        if (event.type === 'TOV' && count >= 10 && count % 5 === 0)
-          aiPrompt = `Team ${event.team} committed ${count} turnovers. Suggest slowing offense and improving passing.`;
-        else if (event.type === 'PF' && count >= 10 && count % 5 === 0)
-          aiPrompt = `Team ${event.team} committed ${count} fouls. Suggest a defensive adjustment.`;
-        else if (event.type === 'OREB' && count >= 8 && count % 4 === 0)
-          aiPrompt = `Team ${event.team} grabbed ${count} offensive rebounds. Suggest the opponent needs stronger box-out.`;
-        else if (event.type === 'AST' && count >= 15 && count % 5 === 0)
-          aiPrompt = `Team ${event.team} has ${count} assists. Acknowledge the excellent ball movement.`;
+        const teamEvents = matchEvents.filter(e => e.team === event.team);
+        
+        if (event.type === 'TOV') {
+          // 3 turnovers in a row
+          if (teamEvents.length >= 3) {
+            const last3 = teamEvents.slice(0, 3);
+            if (last3.every(e => e.type === 'TOV')) {
+              aiPrompt = `The ${event.team} team just committed 3 turnovers in a row. Suggest slowing down the tempo and making safer passes.`;
+            }
+          }
+        } else if (event.type === 'PF') {
+          // 2 fouls in a quarter by Player X
+          const playerFoulsInQuarter = matchEvents.filter(e => e.playerId === event.playerId && e.type === 'PF' && e.quarter === event.quarter).length;
+          if (playerFoulsInQuarter === 2) {
+             aiPrompt = `Player ${event.playerName || 'X'} has committed 2 fouls in quarter ${event.quarter}. Suggest substituting them immediately to avoid foul trouble.`;
+          }
+        } else if (event.type === 'OREB') {
+          // Opponent gets 3 offensive rebounds (we evaluate the team getting the OREB)
+          const orebCount = matchEvents.filter(e => e.team === event.team && e.type === 'OREB').length;
+          if (orebCount > 0 && orebCount % 3 === 0) {
+              aiPrompt = `The ${event.team} team has grabbed ${orebCount} offensive rebounds. Suggest to the opponent coach that they need to make adjustments to box out better.`;
+          }
+        } else if (event.type === 'AST') {
+          const astCount = teamEvents.filter(e => e.type === 'AST').length;
+          if (astCount > 0 && astCount % 5 === 0) {
+            aiPrompt = `The ${event.team} team has ${astCount} assists. Acknowledge the excellent ball movement.`;
+          }
+        }
 
         if (aiPrompt) {
           const response = await deepSeek.requestCompletion(aiPrompt, aiSystem);
@@ -157,9 +189,9 @@ app.post("/api/ia/analyze", async (req, res) => {
   try {
     const deepSeek = getDeepSeek();
 
-    let systemPrompt = "You are HoopsAI, a professional basketball tactical analyst. Answer in the same language as the user.";
+    let systemPrompt = "You are HoopsAI, a professional basketball tactical analyst. Provide professional, data-driven insights based on the match events provided. Answer in the same language as the user. If asked 'why did we lose' or similar, analyze turnovers (TOV), rebounds (REB), and shooting efficiency.";
     if (mode === "support") {
-      systemPrompt = "You are HoopsAI Support. Help users learn how to use the app: recording matches, exporting data, managing rosters.";
+      systemPrompt = "You are HoopsAI Support. Help users learn how to use the app: recording matches, exporting data, managing rosters. Answer in the same language as the user.";
     }
 
     const contextPrompt = matchData && Object.keys(matchData).length > 0
@@ -177,6 +209,57 @@ app.post("/api/ia/analyze", async (req, res) => {
         ? "DEEPSEEK_API_KEY is still the placeholder value. Update it in Vercel → Settings → Environment Variables."
         : "Check your DEEPSEEK_API_KEY in Vercel environment variables."
     });
+  }
+});
+
+// ─── AI Game Analysis API ────────────────────────────────────────────────────────
+app.post("/api/ia/game-report", async (req, res) => {
+  const { matchId } = req.body;
+  if (!matchId) return res.status(400).json({ error: "matchId is required" });
+
+  try {
+    let matchEvents: any[] = [];
+    try {
+      const result = await dbQuery(
+        "SELECT data FROM events WHERE data::text LIKE $1 ORDER BY created_at ASC",
+        [`%"matchId":"${matchId}"%`]
+      );
+      matchEvents = result.rows.map((row: any) => typeof row.data === 'string' ? JSON.parse(row.data) : row.data);
+    } catch (_) { /* DB unavailable */ }
+
+    if (matchEvents.length === 0) {
+      return res.status(404).json({ error: "No events found for this match" });
+    }
+
+    const deepSeek = getDeepSeek();
+    const systemPrompt = "You are HoopsAI, a professional basketball tactical analyst. Analyze the provided match events chronologically and generate a deep tactical report highlighting key turning points, defensive weaknesses, offensive strengths, and player performances. Use markdown formatting with bold headers and bullet points. Answer in the same language as the user.";
+
+    const contextPrompt = `Please analyze the following match events:\n${JSON.stringify(matchEvents)}`;
+    
+    const response = await deepSeek.requestCompletion(contextPrompt, systemPrompt);
+    return res.json({ report: response });
+  } catch (error: any) {
+    console.error("AI Game Report Error:", error.message);
+    return res.status(500).json({ error: "Failed to generate AI game report" });
+  }
+});
+
+// ─── AI Predictive Analytics API ────────────────────────────────────────────────
+app.post("/api/ia/predict", async (req, res) => {
+  const { playerStats } = req.body;
+  if (!playerStats) return res.status(400).json({ error: "playerStats is required" });
+
+  try {
+    const deepSeek = getDeepSeek();
+    const systemPrompt = "You are HoopsAI, an elite basketball scout and predictive analyst. Based on the provided player statistics across recorded games, predict their future performance (expected points, rebounds, assists), identify their primary tactical value, and warn about any potential risks (e.g., foul trouble, turnovers). Use clear markdown formatting with bullet points. Answer in the same language as the user.";
+
+    const contextPrompt = `Please analyze the following player data and provide a concise prediction report:\n${JSON.stringify(playerStats)}`;
+    
+    const response = await deepSeek.requestCompletion(contextPrompt, systemPrompt);
+    return res.json({ prediction: response });
+  } catch (error: any) {
+    console.error("AI Prediction Error:", error.message);
+    return res.status(500).json({ error: "Failed to generate AI prediction" });
   }
 });
 

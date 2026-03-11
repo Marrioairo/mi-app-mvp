@@ -26,7 +26,7 @@ const Navbar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={toggleLanguage}
             className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors"
           >
@@ -36,17 +36,13 @@ const Navbar: React.FC = () => {
 
           {user ? (
             <>
-              <Link to="/create-game" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
+              <Link to="/scorekeeper" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
                 <Zap className="h-4 w-4" />
-                {t('create_game') || "New Game"}
+                {t('scorekeeper') || "Anotador"}
               </Link>
               <Link to="/chat" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
                 <MessageSquare className="h-4 w-4" />
                 {t('ai_analyst')}
-              </Link>
-              <Link to="/agenda" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
-                <Calendar className="h-4 w-4" />
-                {t('agenda') || "Agenda"}
               </Link>
               <Link to="/stats" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
                 <TrendingUp className="h-4 w-4" />
@@ -72,23 +68,17 @@ const Navbar: React.FC = () => {
                 <LayoutDashboard className="h-4 w-4" />
                 {t('dashboard')}
               </Link>
-              {user.email === "marrioairocastro@gmail.com" && (
-                <Link to="/admin" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-indigo-600 transition-colors">
-                  <ShieldCheck className="h-4 w-4" />
-                  Admin
-                </Link>
-              )}
               <div className="h-4 w-px bg-neutral-200 mx-1" />
-              <div className="relative group">
-                <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  <img src={user.photoURL || ""} alt={user.displayName || ""} className="h-8 w-8 rounded-full border border-neutral-200" referrerPolicy="no-referrer" />
-                </Link>
-                {/* Simple dropdown indicator */}
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col overflow-hidden">
-                  <Link to="/profile" className="px-4 py-3 text-sm font-bold text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100">My Profile</Link>
-                  <Link to="/settings" className="px-4 py-3 text-sm font-bold text-neutral-700 hover:bg-neutral-50 text-left">Settings</Link>
-                </div>
-              </div>
+              <button
+                onClick={logout}
+                className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-red-600 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Cierre de sesión
+              </button>
+              <Link to="/profile">
+                <img src={user.photoURL || ""} alt={user.displayName || ""} className="h-8 w-8 rounded-full border border-neutral-200" referrerPolicy="no-referrer" />
+              </Link>
             </>
           ) : (
             <button

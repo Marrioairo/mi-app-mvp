@@ -1,21 +1,38 @@
 {
-  "name": "Nexus AI SaaS",
-  "short_name": "Nexus AI",
-  "description": "Professional AI Workspace",
+  "name": "HoopsAI — Basketball Manager",
+  "short_name": "HoopsAI",
+  "description": "Gestión integral de ligas, torneos y finanzas de baloncesto. Scorekeeper FIBA, Acta Digital y IA Premium.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "background_color": "#0d0d0d",
+  "theme_color": "#ea580c",
+  "categories": [
+    "sports",
+    "productivity"
+  ],
+  "lang": "es",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/nexus/192/192",
+      "src": "/pwa-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "https://picsum.photos/seed/nexus/512/512",
+      "src": "/pwa-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "HoopsAI Scorekeeper"
     }
   ]
 }
