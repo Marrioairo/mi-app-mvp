@@ -50,19 +50,19 @@ const Navbar: React.FC = () => {
               </Link>
               <Link to="/tournaments" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
                 <Trophy className="h-4 w-4" />
-                Torneos
+                {t('tournaments')}
               </Link>
               <Link to="/teams" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
                 <ShieldCheck className="h-4 w-4" />
-                Equipos
+                {t('teams')}
               </Link>
               <Link to="/finances" className="flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
                 <DollarSign className="h-4 w-4" />
-                Finanzas
+                {t('finances')}
               </Link>
               <Link to="/scouting" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
                 <BarChart3 className="h-4 w-4" />
-                Scouting
+                {t('scouting')}
               </Link>
               <Link to="/dashboard" className="flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-orange-600 transition-colors">
                 <LayoutDashboard className="h-4 w-4" />

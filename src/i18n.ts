@@ -42,7 +42,7 @@ const resources = {
       "team": "Team",
       "player": "Player",
       "type": "Type",
-      
+
       // Scorekeeper
       "home": "Home",
       "away": "Away",
@@ -65,7 +65,7 @@ const resources = {
       "position": "Position",
       "set_as_starter": "Set as Starter",
       "save_player": "Save Player",
-      
+
       // Actions
       "action_1pt": "+1 FT",
       "action_2pt": "+2 FG",
@@ -120,7 +120,10 @@ const resources = {
       "ast_tov_ratio": "AST/TOV Ratio",
       "ast_tov_ratio_desc": "Evaluates decision making. A ratio > 2.0 indicates superb ball protection.",
       "foul_trouble": "Foul Trouble",
-      "foul_trouble_desc": "DeepSeek AI will warn the live coach if a player accumulates fouls too quickly."
+      "foul_trouble_desc": "DeepSeek AI will warn the live coach if a player accumulates fouls too quickly.",
+      "finances": "Finances",
+      "scouting": "Scouting",
+      "teams": "Teams"
     }
   },
   es: {
@@ -185,7 +188,7 @@ const resources = {
       "position": "Posición",
       "set_as_starter": "Marcar como Titular",
       "save_player": "Guardar Jugador",
-      
+
       // Actions
       "action_1pt": "+1 TL",
       "action_2pt": "+2 TC",
@@ -240,7 +243,10 @@ const resources = {
       "ast_tov_ratio": "Ratio AST/PER",
       "ast_tov_ratio_desc": "Evalúa la toma de decisiones. Un ratio > 2.0 indica excelente protección del balón.",
       "foul_trouble": "Problemas de Faltas",
-      "foul_trouble_desc": "La IA DeepSeek advertirá al entrenador en vivo si un jugador acumula faltas muy rápido."
+      "foul_trouble_desc": "La IA DeepSeek advertirá al entrenador en vivo si un jugador acumula faltas muy rápido.",
+      "finances": "Finanzas",
+      "scouting": "Scouting",
+      "teams": "Equipos"
     }
   }
 };
