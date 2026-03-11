@@ -4,8 +4,12 @@ apply plugin: 'com.google.gms.google-services'
 
 def secretsPropertiesFile = rootProject.file("secrets.properties")
 def secretsProperties = new Properties()
-if (secretsPropertiesFile.exists()) {
-    secretsProperties.load(new FileInputStream(secretsPropertiesFile))
+if (secretsPropertiesFile.exists() && secretsPropertiesFile.isFile()) {
+    try {
+        secretsPropertiesFile.withInputStream { secretsProperties.load(it) }
+    } catch (Exception e) {
+        println "Warning: Could not load secrets.properties: ${e.message}"
+    }
 }
 
 android {
@@ -13,13 +17,19 @@ android {
     compileSdk = rootProject.ext.compileSdkVersion
 
     signingConfigs {
+        debug {
+            // Debug uses Android's automatic debug keystore
+        }
         release {
-            storeFile file(secretsProperties['RELEASE_STORE_FILE'] ?: "key0")
-            storePassword secretsProperties['RELEASE_STORE_PASSWORD'] ?: ""
-            keyAlias secretsProperties['RELEASE_KEY_ALIAS'] ?: ""
-            keyPassword secretsProperties['RELEASE_KEY_PASSWORD'] ?: ""
-            v1SigningEnabled true
-            v2SigningEnabled true
+            if (secretsPropertiesFile.exists() && secretsProperties['RELEASE_STORE_FILE']) {
+                def ksFile = rootProject.file(secretsProperties['RELEASE_STORE_FILE'])
+                if (ksFile.exists()) {
+                    storeFile ksFile
+                    storePassword secretsProperties['RELEASE_STORE_PASSWORD']
+                    keyAlias secretsProperties['RELEASE_KEY_ALIAS']
+                    keyPassword secretsProperties['RELEASE_KEY_PASSWORD']
+                }
+            }
         }
     }
 
@@ -37,7 +47,7 @@ android {
 
     buildTypes {
         debug {
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug
         }
         release {
             signingConfig signingConfigs.release

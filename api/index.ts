@@ -28,7 +28,7 @@ const callDeepSeek = async (prompt: string, system: string): Promise<string> => 
     );
   }
   const baseUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1';
-  const model   = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+  const model = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
